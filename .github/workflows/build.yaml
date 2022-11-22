@@ -1,0 +1,31 @@
+name: Build
+env:
+  application: ${{ github.event.repository.name }}
+  java-version: 17 #The Java version to use for building. Please see here for valid values https://github.com/actions/setup-java
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: self-hosted
+    #This is here as the `mvnw release:perform` will checkout and commit the updated version back to github, which would trigger running this action unnecessarily.
+
+    steps:
+      - name: Checkout application repo
+        uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ env.java-version }} # The JDK version to make available on the path.
+          java-package: jdk # (jre, jdk, or jdk+fx) - defaults to jdk
+          architecture: x64 # (x64 or x86) - defaults to x64
+          settings-path: /tmp/settings.xml # work around to a bug in setup-java
+
+      - name: Check formatting
+        run: ./mvnw com.spotify.fmt:fmt-maven-plugin:check -Dverbose=true
+
+      - name: Maven Test
+        run: ./mvnw test --batch-mode -Dmaven.test.failure.ignore=true
